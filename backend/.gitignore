@@ -3,6 +3,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/windows,visualstudiocode,database,node
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,visualstudiocode,database,node
 
+### Personal ignore folder/files ###
+uploads/*
+
 ### Database ###
 *.accdb
 *.db
