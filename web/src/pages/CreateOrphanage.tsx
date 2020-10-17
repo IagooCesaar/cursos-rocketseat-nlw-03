@@ -1,10 +1,13 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, ChangeEvent } from "react";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import { LeafletMouseEvent } from "leaflet";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiXSquare } from "react-icons/fi";
+import { useHistory } from "react-router-dom";
 
 import SideBar from "../components/SideBar";
 import mapIcon from "../utils/mapIcon";
+
+import api from "../services/api";
 
 import "../styles/pages/create-orphanage.css";
 
@@ -16,6 +19,7 @@ interface Orphanage {
 }
 
 export default function CreateOrphanage() {
+  const history = useHistory();
   const [position, setPosition] = useState({
     latitude: 0,
     longitude: 0,
@@ -32,20 +36,56 @@ export default function CreateOrphanage() {
   const [instructions, setInstructions] = useState("");
   const [opening_hours, setOpeningHours] = useState("");
   const [open_on_weekends, setOpenOnWeekends] = useState(true);
+  const [images, setImages] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+
+  function handleSelectImages(event: ChangeEvent<HTMLInputElement>) {
+    if (!event.target.files) {
+      return;
+    }
+    const selectedImages = event.target.files;
+    setImages([...images, ...Array.from(selectedImages)]);
+    const selectedImagesPreview = Array.from(selectedImages).map((image) => {
+      return URL.createObjectURL(image);
+    });
+    setPreviewImages([...previewImages, ...selectedImagesPreview]);
+  }
+
+  function handleRemoveImage(index: number) {
+    let selectedImages = images;
+    selectedImages.splice(index, 1);
+    setImages([...selectedImages]);
+
+    let selectedImagesPreview = previewImages;
+    selectedImagesPreview.splice(index, 1);
+    setPreviewImages([...selectedImagesPreview]);
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const { latitude, longitude } = position;
-    const data = {
-      name,
-      latitude,
-      longitude,
-      about,
-      instructions,
-      opening_hours,
-      open_on_weekends,
-    };
-    console.log(data);
+
+    const data = new FormData();
+    data.append("name", name);
+    data.append("latitude", String(latitude));
+    data.append("longitude", String(longitude));
+    data.append("about", about);
+    data.append("instructions", instructions);
+    data.append("opening_hours", opening_hours);
+    data.append("open_on_weekends", String(open_on_weekends));
+    images.forEach((image) => data.append("images", image));
+
+    async function ApplyData() {
+      try {
+        const result = await api.post("/orphanages", data);
+        console.log(result.data);
+        alert("Cadastro realizado com sucesso");
+        history.push("/app");
+      } catch {
+        alert("Falha ao realizar o cadastro");
+      }
+    }
+    ApplyData();
   }
 
   return (
@@ -63,7 +103,7 @@ export default function CreateOrphanage() {
               onclick={handleMapClick}
             >
               <TileLayer
-                url={`https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles/256/{z}/{x}/{y}@2x?access_token=${process.env.REACT_APP_MAPBOX_TOKEN}`}
+                url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${process.env.REACT_APP_MAPBOX_TOKEN}`}
               />
 
               {position.latitude !== 0 && (
@@ -98,12 +138,33 @@ export default function CreateOrphanage() {
 
             <div className="input-block">
               <label htmlFor="images">Fotos</label>
-
-              <div className="uploaded-image"></div>
-
-              <button className="new-image" type="button">
-                <FiPlus size={24} color="#15b6d6" />
-              </button>
+              <div className="images-container">
+                {previewImages.map((image, index) => {
+                  return (
+                    <div key={image} className="image-container">
+                      <img
+                        src={image}
+                        alt={`${index + 1} imagem selecionada`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                      >
+                        <FiXSquare size={18} color="#fff" />
+                      </button>
+                    </div>
+                  );
+                })}
+                <label className="new-image" htmlFor="image[]">
+                  <FiPlus size={24} color="#15b6d6" />
+                </label>
+              </div>
+              <input
+                multiple
+                type="file"
+                id="image[]"
+                onChange={handleSelectImages}
+              />
             </div>
           </fieldset>
 
