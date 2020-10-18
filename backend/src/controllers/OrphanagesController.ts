@@ -46,7 +46,7 @@ export default {
       about,
       instructions, 
       opening_hours,
-      open_on_weekends, 
+      open_on_weekends: open_on_weekends.toLowerCase() === 'true', 
       images
     }
     const schema = Yup.object().shape({
@@ -65,8 +65,9 @@ export default {
     })
 
     await schema.validate(data, {abortEarly: false})//erro de todos os campos de uma vez
+    const castData = schema.cast(data)
   
-    const orphanage = orphanagesRepository.create(data);
+    const orphanage = orphanagesRepository.create(castData);
     await orphanagesRepository.save(orphanage)
   
     return res.status(201).json(orphanage)
